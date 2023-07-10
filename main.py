@@ -6,10 +6,10 @@ from pygame.locals import *
 # Schachtel für alles mit Zeiten
 class Zeiten:
     def __init__(self):
-        self.night = 5
+        self.night = 1
         self.fredbear = 0
         self.springbonnie = 0
-        self.spieldauer = 10
+        self.spieldauer = 60
         self.startzeit = None
         self.startfred = None
         self.endefred = None
