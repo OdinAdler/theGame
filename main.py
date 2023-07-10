@@ -9,7 +9,7 @@ class Zeiten:
         self.night = 5
         self.fredbear = 0
         self.springbonnie = 0
-        self.spieldauer = 20
+        self.spieldauer = 10
         self.startzeit = None
         self.startfred = None
         self.endefred = None
@@ -38,14 +38,11 @@ class Zeiten:
 class Musik:
 
     def __init__(self):
-        pass
+        self.jumpscare = None
+        self.end_sound = None
 
     def ladeMusik(self):
         self.jumpscare = pygame.mixer.Sound(os.path.join('assets','jumpscare_sound-39630.mp3'))
-        self.phone1 = pygame.mixer.Sound(os.path.join('assets','Phonecall.mp3'))
-        self.phone2 = pygame.mixer.Sound(os.path.join('assets','Phonecall2.mp3'))
-        self.phone3 = pygame.mixer.Sound(os.path.join('assets','Phonecall3.mp3'))
-        self.phonedead = pygame.mixer.Sound(os.path.join('assets','Phonecall4.mp3'))
         self.end_sound = pygame.mixer.Sound(os.path.join('assets','shift_complete.mp3'))
 
 
@@ -126,6 +123,7 @@ class Spiel:
                 if self.verloren == True:
                     self.zeige_endverloren = True
                     self.zeige_endgewonnen = False
+                    return
                 else:
                     if zeiten.night > 5:
                         zeiten.night = zeiten.night + 1
@@ -133,6 +131,7 @@ class Spiel:
                         self.spiellaeuft = False
                         self.zeige_endverloren = False
                         self.zeige_endgewonnen = True
+                        return
 
 
             # checken ob fred erscheint
@@ -145,7 +144,17 @@ class Spiel:
                     self.zeige_fred = True
                     zeiten.startfred = time.time()
 
-            #checken ob verloren
+            # checken ob spring erscheint
+            if jetzt - zeiten.endespring > zeiten.springbonnie:
+                self.zeige_startfenster = False
+                self.zeige_spielfenster = True
+                self.zeige_endgewonnen = False
+                self.zeige_endverloren = False
+                if self.zeige_spring == False:
+                    self.zeige_spring = True
+                    zeiten.startspring = time.time()
+
+            #checken ob fred verloren
             if self.zeige_fred:
                 if jetzt - zeiten.startfred > zeiten.zeitbistot:
                     self.spiellaeuft = False
@@ -156,18 +165,9 @@ class Spiel:
                     self.zeige_spielfenster = False
                     self.zeige_fred = False
                     self.zeige_spring = False
+                    return
 
-            # checken ob spring erscheint
-            if jetzt - zeiten.endespring >=  + zeiten.springbonnie:
-                self.zeige_startfenster = False
-                self.zeige_spielfenster = True
-                self.zeige_endgewonnen = False
-                self.zeige_endverloren = False
-                if self.zeige_spring == False:
-                    self.zeige_spring = True
-                    zeiten.startspring = time.time()
-
-            #checken ob verloren
+            #checken ob spring verloren
             if self.zeige_spring:
                 if jetzt - zeiten.startspring > zeiten.zeitbistot:
                     self.spiellaeuft = False
@@ -178,6 +178,7 @@ class Spiel:
                     self.zeige_spielfenster = False
                     self.zeige_fred = False
                     self.zeige_spring = False
+                    return
 
     def zeichne_fenster(self, fenster):
         fenster.screen.fill((0,0,0))
@@ -202,6 +203,12 @@ class Spiel:
 
         pygame.display.flip
         pygame.display.update()
+
+    def spiele_musik(self, musik):
+        if self.zeige_endverloren:
+            musik.jumpscare.play()
+        if self.zeige_endgewonnen:
+            musik.end_sound.play()
 
     def am_ende_aufraeumen(self):
         pygame.quit()
@@ -234,6 +241,8 @@ def main():
         spiel.auswerten(spiel, zeiten)
 
         spiel.zeichne_fenster(fenster)
+
+        spiel.spiele_musik(musik)
 
     # Aufraeumen nach Ende vom Mainloop
     spiel.am_ende_aufraeumen()  
