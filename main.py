@@ -6,31 +6,33 @@ from pygame.locals import *
 # Schachtel für alles mit Zeiten
 class Zeiten:
     def __init__(self):
-        self.night = 6
+        self.night = 5
         self.fredbear = 0
         self.springbonnie = 0
-        self.spieldauer = 300
+        self.spieldauer = 20
         self.startzeit = None
+        self.startfred = None
+        self.endefred = None
+        self.startspring = None
+        self.endespring = None
 
-    def zeit(self):
+    def fredzeit(self):
+        self.fredbear = random.randint(3, 10)
+
+    def springzeit(self):
+        self.springbonnie = random.randint(3, 10)
+
+    def zeitbistot(self):
         if self.night == 1:
-            self.fredbear = random.randint(100, 150)
-            self.springbonnie = random.randint(100, 150)        
+            self.zeitbistot = 5    
         if self.night == 2:
-            self.fredbear = random.randint(80, 120)
-            self.springbonnie = random.randint(80, 120)    
+            self.zeitbistot = 4
         if self.night == 3:
-            self.fredbear = random.randint(50, 100)
-            self.springbonnie = random.randint(50, 100)          
+            self.zeitbistot = 3    
         if self.night == 4:
-            self.fredbear = random.randint(40, 70)
-            self.springbonnie = random.randint(40, 70)          
+            self.zeitbistot = 2    
         if self.night == 5:
-            self.fredbear = random.randint(20, 40)
-            self.springbonnie = random.randint(20, 40)
-        if self.night == 6:
-            self.fredbear = random.randint(10, 20)
-            self.springbonnie = random.randint(10, 20)
+            self.zeitbistot = 1
 
 # Schachtel für alles mit Musik
 class Musik:
@@ -59,7 +61,8 @@ class Fenster:
         self.startbild = pygame.image.load(os.path.join('assets','startbild.png')).convert()
         self.hintergrund = pygame.image.load(os.path.join('assets','Background.png')).convert()
         self.easteregg = pygame.image.load(os.path.join('assets','easteregg.png')).convert()
-        self.shiftcomplete = pygame.image.load(os.path.join('assets','shift_complete.png'))
+        self.gewonnen = pygame.image.load(os.path.join('assets','shift_complete.png')).convert()
+        self.verloren = pygame.image.load(os.path.join('assets','Springbonnie Jumpscare.png')).convert()
 
     def ladeBilder(self):
         self.spring = pygame.image.load(os.path.join('assets','neu.png')).convert()
@@ -74,11 +77,11 @@ class Spiel:
         self.zeige_startfenster = True
         self.spiellaeuft = False
         self.zeige_spielfenster = False
-        self.zeige_endfenster = False
+        self.zeige_endgewonnen = False
+        self.zeige_endverloren = False
         self.zeige_fred = False
         self.zeige_spring = False
-        self.linketuer = False
-        self.rechtetuer = False
+        self.verloren = False
 
     def bei_event(self, event, zeiten):
         if event.type == pygame.QUIT:
@@ -87,46 +90,94 @@ class Spiel:
         if event.type == pygame.KEYDOWN:
 
             if event.key == pygame.K_SPACE:
+                jetzt = time.time()
                 self.zeige_startfenster = False
                 self.zeige_spielfenster = True
                 self.zeige_fred = False
                 self.zeige_spring = False
-                zeiten.startzeit = time.time()
+                self.zeige_endgewonnen = False
+                self.zeige_endverloren = False
+                zeiten.startzeit = jetzt
+                zeiten.endefred = jetzt
+                zeiten.endespring = jetzt
                 self.spiellaeuft = True
 
             if event.key == pygame.K_q:
-                self.linketuer = True     
+                zeiten.endefred = time.time()
+                zeiten.fredzeit()
+                self.zeige_fred = False
                     
             if event.key == pygame.K_e:
-                self.rechtetuer = True     
+                zeiten.endespring = time.time()
+                zeiten.springzeit()
+                self.zeige_spring = False
 
     def auswerten(self, spiel, zeiten):
         jetzt = time.time()
         if self.spiellaeuft == True:
+            # spieldauer checken
             vergangezeit = jetzt - zeiten.startzeit
             if vergangezeit > zeiten.spieldauer:
                 self.zeige_startfenster = False
                 self.zeige_spielfenster = False
-                self.zeige_endfenster = True
                 self.zeige_fred = False
                 self.zeige_spring = False
 
-            if jetzt - zeiten.startzeit > zeiten.fredbear:
-                self.zeige_startfenster = False
-                self.zeige_spielfenster = True
-                self.zeige_endfenster = False
-                self.zeige_fred = True
-                if self.linketuer == True:
-                    self.zeige_fred = False
+                if self.verloren == True:
+                    self.zeige_endverloren = True
+                    self.zeige_endgewonnen = False
+                else:
+                    if zeiten.night > 5:
+                        zeiten.night = zeiten.night + 1
+                    else:
+                        self.spiellaeuft = False
+                        self.zeige_endverloren = False
+                        self.zeige_endgewonnen = True
 
-            if jetzt - zeiten.startzeit > zeiten.springbonnie:
+
+            # checken ob fred erscheint
+            if jetzt - zeiten.endefred > zeiten.fredbear:
                 self.zeige_startfenster = False
                 self.zeige_spielfenster = True
-                self.zeige_endfenster = False
-                self.zeige_spring = True
-                if self.rechtetuer == True:
+                self.zeige_endgewonnen = False
+                self.zeige_endverloren = False
+                if self.zeige_fred == False:
+                    self.zeige_fred = True
+                    zeiten.startfred = time.time()
+
+            #checken ob verloren
+            if self.zeige_fred:
+                if jetzt - zeiten.startfred > zeiten.zeitbistot:
+                    self.spiellaeuft = False
+                    self.verloren = True
+                    self.zeige_endgewonnen = False
+                    self.zeige_endverloren = True
+                    self.zeige_startfenster = False
+                    self.zeige_spielfenster = False
+                    self.zeige_fred = False
                     self.zeige_spring = False
 
+            # checken ob spring erscheint
+            if jetzt - zeiten.endespring >=  + zeiten.springbonnie:
+                self.zeige_startfenster = False
+                self.zeige_spielfenster = True
+                self.zeige_endgewonnen = False
+                self.zeige_endverloren = False
+                if self.zeige_spring == False:
+                    self.zeige_spring = True
+                    zeiten.startspring = time.time()
+
+            #checken ob verloren
+            if self.zeige_spring:
+                if jetzt - zeiten.startspring > zeiten.zeitbistot:
+                    self.spiellaeuft = False
+                    self.verloren = True
+                    self.zeige_endgewonnen = False
+                    self.zeige_endverloren = True
+                    self.zeige_startfenster = False
+                    self.zeige_spielfenster = False
+                    self.zeige_fred = False
+                    self.zeige_spring = False
 
     def zeichne_fenster(self, fenster):
         fenster.screen.fill((0,0,0))
@@ -137,14 +188,17 @@ class Spiel:
         if self.zeige_spielfenster == True:
             fenster.screen.blit(fenster.hintergrund, (0,0))
 
-        if self.zeige_endfenster == True:
-            fenster.screen.blit(fenster.shiftcomplete, (0,0))
+        if self.zeige_endgewonnen == True:
+            fenster.screen.blit(fenster.gewonnen, (0,0))
 
         if self.zeige_fred == True:
             fenster.screen.blit(fenster.fred, (100,150))
 
         if self.zeige_spring == True:
             fenster.screen.blit(fenster.spring, (800, 150))
+
+        if self.zeige_endverloren == True:
+            fenster.screen.blit(fenster.verloren, (0,0))
 
         pygame.display.flip
         pygame.display.update()
@@ -159,7 +213,9 @@ def main():
 
     # Alle Schachteln nehmen und befuellen
     zeiten = Zeiten()
-    zeiten.zeit()
+    zeiten.zeitbistot()
+    zeiten.fredzeit()
+    zeiten.springzeit()
     
     musik = Musik()
     musik.ladeMusik()
